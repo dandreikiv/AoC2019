@@ -71,26 +71,39 @@ func linesForWire(_ wire: String) -> [Line] {
     return lines
 }
 
+func lineLength(_ line: Line) -> Float {
+    return distance(between: line.start, endPoint: line.end)
+}
+
+func distance(between startPoint: Point, endPoint: Point) -> Float {
+    return abs(endPoint.x - startPoint.x) + abs(endPoint.y - startPoint.y)
+}
+
 let wire1 = String(wires[0])
 let wire2 = String(wires[1])
 
 let lines1 = linesForWire(wire1)
 let lines2 = linesForWire(wire2)
 
-var crossPoints: [Point] = []
+var crossingLines: [(l1Index: Int, l2Index: Int, crossingPoint: Point)] = []
 
-for l1 in lines1 {
-    for l2 in lines2 {
+var d1: Float = 0
+var minSum: Float = Float(Int.max)
+for (l1Index, l1) in lines1.enumerated() {
+    var d2: Float = 0
+    for (l2Index, l2) in lines2.enumerated() {
         if let cross = linesCross(start1: l1.start, end1: l1.end, start2: l2.start, end2: l2.end) {
-            crossPoints.append(cross)
+            crossingLines.append((l1Index: l1Index, l2Index: l2Index, crossingPoint: cross))
+            let ds1 = distance(between: l1.start, endPoint: cross)
+            let ds2 = distance(between: l2.start, endPoint: cross)
+
+            let sum = (d1 + ds1) + (d2 + ds2)
+            minSum = min(minSum, sum)
+        } else {
+            d2 += lineLength(l2) 
         }
     }
+    d1 += lineLength(l1)
 }
 
-var minDistance: Float = Float(Int.max)
-
-for cross in crossPoints {
-    minDistance = min(minDistance, abs(cross.x) + abs(cross.y))
-}
-
-print(minDistance)
+print("min sum: \(minSum)")
