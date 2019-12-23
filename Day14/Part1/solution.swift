@@ -47,7 +47,7 @@ class ChemicalReaction {
     }
 
     func parseChain(_ string: String) -> [Element] {
-        return string.split(separator: ",").reversed().map{parseElement(String($0))}
+        return string.split(separator: ",").map{parseElement(String($0))}
     }
 
     func isBasicElement(_ el: Element) -> Bool {
@@ -62,23 +62,29 @@ class ChemicalReaction {
     }
 
     func solve() {
-        var replaced = false
-        repeat {
-            guard let chain = data["FUEL"] else { return }
-            replaced = false
-            var elements = chain.elements
+        var finished = false
 
+        while !finished {
+
+            guard let chain = data["FUEL"] else { return }
+        
+            var elements = chain.elements
+            var replaced = false
             for el in chain.elements {
                 if isBasicElement(el) { continue }
 
                 // check if this element is not in other element chains
                 var allowReplace = true
-                print("element: \(el)")
-                for inel in data[el.name]!.elements { 
-                    if inel == el { 
-                        allowReplace = false; break 
-                    }
-                }
+
+                for d in data {
+                    if d.key == "FUEL" { continue }
+
+                    for inel in d.value.elements { 
+                        if inel.name == el.name { 
+                            allowReplace = false; break 
+                        }
+                    }  
+                } 
 
                 if allowReplace == false { continue }
                 
@@ -86,23 +92,20 @@ class ChemicalReaction {
                 if let ch = data[el.name] {
                     replaced = true
                     elements.removeAll { $0 == el  }
+                    data.removeValue(forKey: el.name )
                     let multiplier = el.quantity <= ch.multiplier ? 1 : Int(ceil( Float(el.quantity) / Float(ch.multiplier) ))
-                    print("=====================")
-                    print("=== \(el.name) ===")
-                    print("el.quantity: \(el.quantity), ch.multiplier: \(ch.multiplier), multiplier = \(multiplier)")
-                    print(ch.elements)
-                    print(multiplyElements(ch.elements, by: multiplier))
-                    print("=====================")
                     elements += multiplyElements(ch.elements, by: multiplier) 
                 }
+
+                if replaced {
+                    let newChain = Chain(multiplier: chain.multiplier, elements: mergeElements(elements))
+                    data["FUEL"] = newChain
+                    break
+                }
             }
-            print("replaced: \(replaced)")
-            if replaced {
-                let newChain = Chain(multiplier: chain.multiplier, elements: mergeElements(elements))
-                data["FUEL"] = newChain
-                print("newChain: \(newChain)")
-            }
-        } while replaced
+
+            finished = (replaced == false)
+        }
 
         guard let chain = data["FUEL"] else { return }
         var total = 0
@@ -131,8 +134,4 @@ class ChemicalReaction {
 }
 
 let chr = ChemicalReaction(input: input)
-chr.printData()
 chr.solve()
-
-print()
-// chr.printData()
